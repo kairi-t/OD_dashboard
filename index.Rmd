@@ -1,0 +1,184 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+packages <- 
+  c(
+    "flexdashboard",
+    "tidyverse",
+    "googlesheets4"
+  )
+
+lapply(
+  packages,
+  library,
+  character.only = TRUE
+)
+```
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Chart A
+
+```{r}
+# Dilution test ----
+## Load data ----
+newMbF_dilute_gsheet <- 
+  read_sheet(
+    ss = "https://docs.google.com/spreadsheets/d/1PA8wqBVxadcV2PXCOSe4oeU_CkxvzuJIpHnMHTCX5Ss/edit#gid=0",
+    sheet = 3
+  ) |> 
+  mutate(
+    Datetime = paste(
+      Date,
+      hour(Time),
+      minute(Time)
+    ) |> 
+      lubridate::ymd_hm()
+  ) |> 
+  dplyr::select(
+    SampleID,
+    Datetime,
+    Dilution,
+    OD600
+  )  
+
+## Clean data ----
+# get the initial date for each sample
+dilute_init_date <- 
+  newMbF_dilute_gsheet |> 
+  group_by(SampleID, Dilution) |> 
+  summarize(
+    init_date = min(Datetime, na.rm = TRUE)
+  ) |> 
+  ungroup()
+# select_init_date
+
+# calculate time difference
+dilute_clean_df <- 
+  newMbF_dilute_gsheet |>  
+  na.omit() |> 
+  left_join(
+    dilute_init_date,
+    by = c("SampleID", "Dilution")
+  ) |> 
+  mutate(
+    month = month(Datetime),
+    day = day(Datetime)
+  ) |> 
+  # left_join(
+  #   methane_gsheet |>
+  #     mutate(
+  #       month = month(Datetime),
+  #       day = day(Datetime)
+  #     ) |>
+  #     dplyr::rename(
+  #       methane_dttm = Datetime
+  #     ),
+  #   by = c(
+  #     "SampleID", "MediaVersion", "month", "day", "OD600"
+#   )
+# ) |>
+mutate(
+  difftime = init_date - Datetime,
+  difftime = `units<-.difftime`(difftime, "hours"),
+  # difftime_methane = init_date - methane_dttm,
+  # difftime_methane = `units<-.difftime`(difftime_methane, "hours")
+)
+
+## Visualize ----
+### Set viz parameters ----
+line_width <- 2
+line_alpha <- 0.5
+point_size <- 3
+point_shape <- 21
+
+
+line_col <- "grey88"
+line_type <- "dashed"
+
+### Make a theme for the OD graphs ----
+od_theme <- 
+  theme_set(
+    theme_bw() +
+      theme(
+        axis.title.y = ggtext::element_markdown(),
+        axis.ticks = element_line(
+          color = line_col,
+          linetype = line_type
+        ),
+        panel.grid = element_line(
+          color = line_col,
+          linetype = line_type
+        ),
+        panel.border = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.text.x = element_text(
+          face = "italic"
+        ),
+        strip.background = element_blank(),
+        legend.position = "bottom"
+      )
+  )
+# Visualize via ggplot
+dilute_test_gg <- 
+  dilute_clean_df |> 
+  filter(SampleID %in% c("smt2*_1", "smt2*_2")) |> 
+  mutate(
+    Time = difftime |> as.numeric() |> abs() 
+  ) |> 
+  ggplot(
+    mapping = aes(
+      x = Time,
+      y = OD600
+    )
+  ) +
+  geom_line(
+    mapping = aes(
+      color = Dilution
+    ),
+    linewidth = line_width,
+    alpha = line_alpha
+  ) +
+  geom_point(
+    mapping = aes(
+      fill = Dilution,
+    ),
+    shape = point_shape,
+    size = point_size
+  ) +
+  labs(
+    x = "Time (h)",
+    y = "OD<sub>600</sub>",
+    title = "New MbF - Dilution Test"
+  ) +
+  facet_grid(
+    cols = vars(SampleID)
+  ) +
+  theme(od_theme)
+
+dilute_test_gg |> 
+  plotly::ggplotly()
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Chart B
+
+```{r}
+
+```
+
+### Chart C
+
+```{r}
+
+```
+
