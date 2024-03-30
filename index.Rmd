@@ -24,8 +24,8 @@ lapply(
 )
 
 # Disable authentication for the sheet
-googlesheets4::gs4_deauth()
-googlesheets4::gs4_auth()
+# googlesheets4::gs4_deauth()
+googlesheets4::gs4_auth(email = "ktanaka2@ncsu.edu")
 ```
 
 Column {data-width=650}
