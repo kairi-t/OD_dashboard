@@ -7,11 +7,14 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+# Load packages ----
 packages <- 
   c(
     "flexdashboard",
     "tidyverse",
-    "googlesheets4"
+    "googlesheets4",
+    "flexdashboard",
+    "plotly"
   )
 
 lapply(
@@ -19,6 +22,10 @@ lapply(
   library,
   character.only = TRUE
 )
+
+# Disable authentication for the sheet
+googlesheets4::gs4_deauth()
+googlesheets4::gs4_auth()
 ```
 
 Column {data-width=650}
@@ -26,13 +33,21 @@ Column {data-width=650}
 
 ### Chart A
 
-```{r}
+```{r, message=FALSE, include=FALSE}
+# Make a function that reads the data
+load_gsheet <- function(link, sheet_num){
+  read_sheet(
+    ss = link,
+    sheet = sheet_num
+  )
+}
+
 # Dilution test ----
 ## Load data ----
 newMbF_dilute_gsheet <- 
-  read_sheet(
-    ss = "https://docs.google.com/spreadsheets/d/1PA8wqBVxadcV2PXCOSe4oeU_CkxvzuJIpHnMHTCX5Ss/edit#gid=0",
-    sheet = 3
+  load_gsheet(
+    link = "https://docs.google.com/spreadsheets/d/1PA8wqBVxadcV2PXCOSe4oeU_CkxvzuJIpHnMHTCX5Ss/edit#gid=0",
+    sheet_num = 3
   ) |> 
   mutate(
     Datetime = paste(
@@ -48,6 +63,26 @@ newMbF_dilute_gsheet <-
     Dilution,
     OD600
   )  
+
+# newMbF_dilute_gsheet <-
+#   read_sheet(
+#     ss = "https://docs.google.com/spreadsheets/d/1PA8wqBVxadcV2PXCOSe4oeU_CkxvzuJIpHnMHTCX5Ss/edit#gid=0",
+#     sheet = 3
+#   ) |>
+#   mutate(
+#     Datetime = paste(
+#       Date,
+#       hour(Time),
+#       minute(Time)
+#     ) |>
+#       lubridate::ymd_hm()
+#   ) |>
+#   dplyr::select(
+#     SampleID,
+#     Datetime,
+#     Dilution,
+#     OD600
+#   )
 
 ## Clean data ----
 # get the initial date for each sample
